@@ -1,0 +1,1080 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>html{color-scheme:light}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>JobShield AI</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: sticky instrument header (brand, four views, backend status) over a single
+   1120px column; the Analyze view is a two-pane workbench that stacks on phones. */
+:root {
+  --bg: #eef1f5;
+  --surface: #ffffff;
+  --surface-2: #f5f7fa;
+  --ink: #0f1722;
+  --ink-2: #434e5d;
+  --ink-3: #667181;
+  --line: #d5dbe4;
+  --accent: #2b3fbf;
+  --accent-ink: #ffffff;
+  --legit: #0b6e99;
+  --legit-tint: #e2f0f6;
+  --fraud: #c2410c;
+  --fraud-tint: #fbe8df;
+  --warn: #7a5200;
+  --warn-tint: #fcf1d2;
+
+  --font-display: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.8125rem;
+  --fs-base: 0.9375rem;
+  --fs-md: 1.0625rem;
+  --fs-lg: 1.375rem;
+  --fs-xl: 1.875rem;
+  --radius: 4px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1117; --surface: #151b24; --surface-2: #1b232e;
+    --ink: #e8edf4; --ink-2: #aeb8c6; --ink-3: #8691a0; --line: #2b3542;
+    --accent: #93a5ff; --accent-ink: #0d1117;
+    --legit: #3a94bd; --legit-tint: #12303d;
+    --fraud: #e06c33; --fraud-tint: #3a2015;
+    --warn: #f0c060; --warn-tint: #33290f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1117; --surface: #151b24; --surface-2: #1b232e;
+  --ink: #e8edf4; --ink-2: #aeb8c6; --ink-3: #8691a0; --line: #2b3542;
+  --accent: #93a5ff; --accent-ink: #0d1117;
+  --legit: #3a94bd; --legit-tint: #12303d;
+  --fraud: #e06c33; --fraud-tint: #3a2015;
+  --warn: #f0c060; --warn-tint: #33290f;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
+  line-height: 1.55;
+}
+h1, h2, h3, p, ul, ol, dl, dd, figure { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+button, input, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+
+/* ---------- header ---------- */
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.top-in {
+  max-width: 1120px; margin: 0 auto; padding: 10px 16px 0;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px;
+}
+.brand { display: flex; align-items: center; gap: 10px; margin-right: auto; }
+.brand svg { flex: none; color: var(--accent); }
+.brand-name { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-md); letter-spacing: 0.01em; }
+.brand-sub { font-size: var(--fs-xs); color: var(--ink-3); }
+.status {
+  display: inline-flex; align-items: center; gap: 8px; max-width: 100%;
+  padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface-2); font-size: var(--fs-sm); color: var(--ink-2); cursor: pointer;
+}
+.status-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; border: 2px solid var(--ink-3); }
+.status[data-state="ok"] .status-dot { background: var(--legit); border-color: var(--legit); }
+.status[data-state="error"] .status-dot { background: var(--fraud); border-color: var(--fraud); border-radius: 1px; }
+.status[data-state="testing"] .status-dot { border-style: dashed; }
+.nav { display: flex; gap: 4px; width: 100%; overflow-x: auto; }
+.nav button {
+  background: none; border: 0; border-bottom: 3px solid transparent; cursor: pointer;
+  padding: 8px 12px 9px; font-weight: 500; color: var(--ink-2); white-space: nowrap;
+}
+.nav button:hover { color: var(--ink); }
+.nav button[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+/* ---------- page ---------- */
+.page { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 56px; display: flex; flex-direction: column; gap: 40px; }
+.section { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.eyebrow { font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-3); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-xl); line-height: 1.15; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-weight: 600; font-size: var(--fs-lg); line-height: 1.2; text-wrap: balance; }
+h3 { font-family: var(--font-display); font-weight: 600; font-size: var(--fs-md); line-height: 1.3; }
+.lede { max-width: 65ch; color: var(--ink-2); font-size: var(--fs-md); }
+.note { max-width: 70ch; color: var(--ink-2); font-size: var(--fs-sm); }
+.prose { max-width: 68ch; display: flex; flex-direction: column; gap: 12px; color: var(--ink-2); }
+.prose strong { color: var(--ink); font-weight: 600; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; min-width: 0; }
+.card-stack { display: flex; flex-direction: column; gap: 16px; }
+#prediction, #connection { scroll-margin-top: 120px; }
+
+/* ---------- stat tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.tile-label { font-size: var(--fs-sm); color: var(--ink-2); }
+.tile-value { font-family: var(--font-display); font-weight: 600; font-size: var(--fs-xl); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.tile-sub { font-size: var(--fs-sm); color: var(--ink-3); }
+
+/* ---------- proportion bar ---------- */
+.propbar { display: flex; gap: 2px; height: 18px; }
+.propbar span { display: block; height: 100%; min-width: 4px; }
+.propbar span:first-child { border-radius: 4px 0 0 4px; }
+.propbar span:last-child { border-radius: 0 4px 4px 0; }
+.sw-legit { background: var(--legit); }
+.sw-fraud { background: var(--fraud); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 24px; font-size: var(--fs-sm); color: var(--ink-2); }
+.legend li { display: flex; align-items: center; gap: 8px; }
+.legend i { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.legend b { color: var(--ink); font-weight: 600; }
+
+/* ---------- tables ---------- */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+th, td { padding: 9px 14px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-weight: 600; color: var(--ink-2); background: var(--surface-2); }
+tbody tr:last-child th, tbody tr:last-child td { border-bottom: 0; }
+tbody th { font-weight: 500; }
+td { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+tr.picked th, tr.picked td { background: var(--surface-2); font-weight: 600; }
+.tag { display: inline-block; margin-left: 8px; padding: 1px 7px; border: 1px solid var(--line); border-radius: 999px; font-family: var(--font-body); font-size: var(--fs-xs); font-weight: 500; color: var(--ink-2); }
+
+/* ---------- pipeline ---------- */
+.pipeline { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; counter-reset: step; }
+.pipeline li { counter-increment: step; border-top: 2px solid var(--ink); padding-top: 10px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pipeline li::before { content: counter(step); font-family: var(--font-data); font-size: var(--fs-xs); color: var(--ink-3); }
+.pipeline b { font-weight: 600; }
+.pipeline span { font-size: var(--fs-sm); color: var(--ink-2); }
+
+/* ---------- confusion matrix ---------- */
+.cm { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); gap: 6px; max-width: 620px; }
+.cm-head { font-size: var(--fs-sm); font-weight: 600; color: var(--ink-2); padding: 4px 8px; align-self: end; }
+.cm-row { font-size: var(--fs-sm); font-weight: 600; color: var(--ink-2); padding: 8px 8px 8px 0; align-self: center; max-width: 9.5em; }
+.cm-row small { display: block; font-weight: 400; color: var(--ink-3); }
+.cm-cell { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; background: var(--surface); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cm-cell[data-kind="error"] { background: var(--warn-tint); border-color: transparent; }
+.cm-count { font-family: var(--font-display); font-weight: 600; font-size: var(--fs-xl); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.cm-name { font-size: var(--fs-sm); color: var(--ink-2); }
+
+/* ---------- workbench ---------- */
+.bench { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.conn { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) auto; gap: 12px; align-items: end; }
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.field label { font-size: var(--fs-sm); font-weight: 600; }
+.field label em { font-style: normal; font-weight: 400; color: var(--ink-3); }
+.field input, .field textarea {
+  width: 100%; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.field textarea { resize: vertical; min-height: 5.2em; line-height: 1.45; }
+.field input:focus, .field textarea:focus { border-color: var(--accent); }
+.field[data-invalid="true"] input, .field[data-invalid="true"] textarea { border-color: var(--fraud); }
+.field-foot { display: flex; justify-content: space-between; gap: 12px; font-size: var(--fs-xs); color: var(--ink-3); }
+.field-err { color: var(--ink); font-weight: 500; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+  padding: 9px 16px; border-radius: var(--radius); border: 1px solid var(--accent);
+  background: var(--accent); color: var(--accent-ink); font-weight: 600; white-space: nowrap;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn[disabled] { opacity: 0.6; cursor: progress; }
+.btn-quiet { background: var(--surface); color: var(--ink); border-color: var(--line); font-weight: 500; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.msg { border-radius: var(--radius); padding: 10px 12px; font-size: var(--fs-sm); background: var(--surface-2); color: var(--ink-2); }
+.msg b { color: var(--ink); }
+.msg[data-tone="warn"] { background: var(--warn-tint); color: var(--ink); }
+.msg[data-tone="ok"] { background: var(--legit-tint); color: var(--ink); }
+.msg[data-tone="error"] { background: var(--fraud-tint); color: var(--ink); }
+
+.empty { border: 1px dashed var(--line); border-radius: var(--radius); padding: 24px 18px; color: var(--ink-2); display: flex; flex-direction: column; gap: 6px; }
+.empty b { color: var(--ink); font-family: var(--font-display); font-size: var(--fs-md); font-weight: 600; }
+.spinner { width: 16px; height: 16px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; border-top-color: var(--line); border-left-color: var(--accent); } }
+.loading { display: flex; align-items: center; gap: 10px; color: var(--ink-2); padding: 24px 18px; border: 1px dashed var(--line); border-radius: var(--radius); }
+
+.verdict { display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: var(--radius); }
+.verdict[data-label="Fraudulent"] { background: var(--fraud-tint); }
+.verdict[data-label="Legitimate"] { background: var(--legit-tint); }
+.verdict svg { flex: none; }
+.verdict[data-label="Fraudulent"] svg { color: var(--fraud); }
+.verdict[data-label="Legitimate"] svg { color: var(--legit); }
+.verdict-label { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-xl); line-height: 1.1; }
+.verdict-meta { font-size: var(--fs-sm); color: var(--ink-2); }
+
+/* decision-score axis */
+.axis { position: relative; height: 96px; margin-top: 4px; }
+.axis-track { position: absolute; left: 0; right: 0; top: 34px; height: 20px; display: flex; gap: 2px; }
+.axis-track span { flex: 1; }
+.axis-track span:first-child { background: var(--legit-tint); border-radius: 4px 0 0 4px; }
+.axis-track span:last-child { background: var(--fraud-tint); border-radius: 0 4px 4px 0; }
+.axis-tick { position: absolute; top: 30px; height: 28px; width: 1px; background: var(--ink-3); transform: translateX(-0.5px); }
+.axis-tick[data-zero="true"] { width: 2px; background: var(--ink); transform: translateX(-1px); }
+.axis-ticklabel { position: absolute; top: 61px; transform: translateX(-50%); font-family: var(--font-data); font-size: var(--fs-xs); color: var(--ink-2); }
+.axis-pin { position: absolute; top: 26px; height: 36px; width: 4px; border-radius: 2px; transform: translateX(-2px); box-shadow: 0 0 0 2px var(--surface); }
+.axis-pin[data-label="Fraudulent"] { background: var(--fraud); }
+.axis-pin[data-label="Legitimate"] { background: var(--legit); }
+.axis-bubble { position: absolute; top: 0; transform: translateX(-50%); font-family: var(--font-data); font-size: var(--fs-sm); font-weight: 500; white-space: nowrap; }
+.axis-sides { position: absolute; left: 0; right: 0; top: 78px; display: flex; justify-content: space-between; font-size: var(--fs-xs); color: var(--ink-3); }
+
+.sum { width: 100%; font-size: var(--fs-sm); }
+.sum th, .sum td { border-bottom: 1px solid var(--line); padding: 7px 0; white-space: normal; }
+.sum th { font-weight: 400; color: var(--ink-2); text-align: left; }
+.sum tr:last-child th, .sum tr:last-child td { border-bottom: 0; border-top: 2px solid var(--ink); font-weight: 600; color: var(--ink); }
+
+.terms { display: flex; flex-direction: column; gap: 8px; }
+.term { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: baseline; }
+.term-name { font-weight: 500; overflow-wrap: anywhere; }
+.term-val { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-size: var(--fs-sm); }
+.term-bar { grid-column: 1 / -1; height: 6px; background: var(--surface-2); border-radius: 0 4px 4px 0; }
+.term-bar i { display: block; height: 100%; min-width: 2px; border-radius: 0 4px 4px 0; }
+.term-math { grid-column: 1 / -1; font-family: var(--font-data); font-size: var(--fs-xs); color: var(--ink-3); }
+.evidence { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+.evidence h3 { display: flex; align-items: center; gap: 8px; font-size: var(--fs-base); }
+.evidence h3 i { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+
+.limits { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.limits li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.limits b { font-weight: 600; }
+.limits span { font-size: var(--fs-sm); color: var(--ink-2); }
+.facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 20px; font-size: var(--fs-sm); max-width: 70ch; }
+.facts dt { color: var(--ink-3); }
+.facts dd { color: var(--ink); overflow-wrap: anywhere; }
+.foot { font-size: var(--fs-xs); color: var(--ink-3); border-top: 1px solid var(--line); padding-top: 14px; max-width: 80ch; }
+
+/* ---------- motion ---------- */
+.reveal { animation: rise 0.35s ease both; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.axis-pin, .axis-bubble { transition: left 0.6s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.term-bar i, .fc-track i { transition: width 0.5s ease; }
+.hist-bin i { transition: height 0.5s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal { animation: none; }
+  .axis-pin, .axis-bubble, .term-bar i, .fc-track i, .hist-bin i { transition: none; }
+}
+
+/* ---------- connection strip, reason line, form actions ---------- */
+.btn-small { padding: 5px 10px; font-size: var(--fs-sm); }
+.connbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); font-size: var(--fs-sm); color: var(--ink-2); }
+.connbar-text { flex: 1; min-width: 12em; }
+.connbar-text b { color: var(--ink); font-weight: 600; }
+.status-dot[data-on="true"] { background: var(--legit); border-color: var(--legit); }
+.reason { color: var(--ink-2); }
+.reason b { color: var(--ink); font-weight: 600; }
+.form-actions { display: flex; align-items: center; gap: 12px; }
+.hint { font-size: var(--fs-xs); color: var(--ink-3); }
+
+/* ---------- post-analysis charts ---------- */
+.charts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.tip { position: fixed; z-index: 30; transform: translate(-50%, calc(-100% - 8px)); max-width: 240px; padding: 6px 9px; border-radius: var(--radius); background: var(--ink); color: var(--bg); font-size: var(--fs-xs); line-height: 1.4; pointer-events: none; }
+.sw-known { background: var(--ink-2); }
+.sw-unknown { background: var(--line); }
+.more summary { cursor: pointer; font-size: var(--fs-sm); color: var(--ink-2); }
+.more[open] summary { margin-bottom: 8px; }
+
+.fc { display: flex; flex-direction: column; }
+.fc-head, .fc-row { display: grid; grid-template-columns: minmax(0, 11em) minmax(0, 1fr) 4.6em; gap: 4px 12px; align-items: center; }
+.fc-head { padding-bottom: 4px; }
+.fc-sides { display: flex; justify-content: space-between; font-size: var(--fs-xs); color: var(--ink-3); }
+.fc-row { padding: 7px 0; border-top: 1px solid var(--line); }
+.fc-row[data-total="true"] { border-top: 2px solid var(--ink); font-weight: 600; }
+.fc-label { display: flex; flex-direction: column; min-width: 0; font-size: var(--fs-sm); }
+.fc-label span { font-weight: 500; }
+.fc-row[data-total="true"] .fc-label span { font-weight: 600; }
+.fc-label small { font-size: var(--fs-xs); color: var(--ink-3); }
+.fc-track { position: relative; height: 14px; }
+.fc-track::before { content: ""; position: absolute; left: 50%; top: -7px; bottom: -7px; width: 1px; background: var(--ink-3); }
+.fc-track i { position: absolute; top: 0; height: 100%; min-width: 2px; }
+.fc-track i[data-dir="right"] { left: 50%; margin-left: 1px; border-radius: 0 4px 4px 0; }
+.fc-track i[data-dir="left"] { right: 50%; margin-right: 1px; border-radius: 4px 0 0 4px; }
+.fc-total { background: var(--ink); }
+.fc-val { text-align: right; font-family: var(--font-data); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+
+.ref { display: flex; flex-direction: column; gap: 8px; }
+.ref-group { display: flex; flex-direction: column; gap: 4px; }
+.ref-title { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); font-weight: 500; }
+.ref-title i { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.ref-title .num { color: var(--ink-3); font-weight: 400; }
+.ref-flag { position: relative; height: 20px; }
+.ref-flag span { position: absolute; top: 0; transform: translateX(-50%); font-family: var(--font-data); font-size: var(--fs-xs); font-weight: 500; white-space: nowrap; }
+.hist-wrap { position: relative; height: 72px; border-bottom: 1px solid var(--line); }
+.hist { display: flex; gap: 2px; height: 100%; }
+.hist[data-dense="true"] { gap: 1px; }
+.hist-bin { flex: 1; min-width: 0; display: flex; align-items: flex-end; }
+.hist-bin:hover { background: var(--surface-2); }
+.hist-bin i { display: block; width: 100%; border-radius: 2px 2px 0 0; }
+.hist-bin i[data-any="true"] { min-height: 2px; }
+.hist-zero { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--ink-3); transform: translateX(-0.5px); pointer-events: none; }
+.hist-mark { position: absolute; top: -4px; bottom: 0; width: 2px; background: var(--ink); box-shadow: 0 0 0 2px var(--surface); transform: translateX(-1px); pointer-events: none; }
+.ref-axis { position: relative; height: 16px; }
+.ref-axis span { position: absolute; top: 0; transform: translateX(-50%); font-family: var(--font-data); font-size: var(--fs-xs); color: var(--ink-2); }
+
+@media (max-width: 860px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bench, .evidence, .limits { grid-template-columns: minmax(0, 1fr); }
+  .pipeline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .conn { grid-template-columns: minmax(0, 1fr); }
+  .charts { grid-template-columns: minmax(0, 1fr); }
+  .form-actions { position: sticky; bottom: 0; z-index: 2; background: var(--surface); border-top: 1px solid var(--line); margin-inline: -20px; margin-bottom: -20px; padding: 10px 20px calc(10px + env(safe-area-inset-bottom, 0px)); border-radius: 0 0 var(--radius) var(--radius); }
+  .form-actions .btn { flex: 1; }
+  .hint { display: none; }
+}
+@media (max-width: 480px) {
+  h1 { font-size: 1.5rem; }
+  .tile-value, .cm-count, .verdict-label { font-size: 1.5rem; }
+  .card { padding: 16px; }
+  .cm { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .cm-row { grid-column: 1 / -1; max-width: none; padding: 8px 0 0; }
+  .cm-row small { display: inline; margin-left: 6px; }
+  .cm-corner { display: none; }
+  .pipeline { grid-template-columns: minmax(0, 1fr); }
+  .form-actions { margin-inline: -16px; margin-bottom: -16px; padding-inline: 16px; }
+  .fc-head, .fc-row { grid-template-columns: minmax(0, 1fr) 4.6em; }
+  .fc-label { grid-column: 1 / -1; flex-direction: row; gap: 8px; align-items: baseline; }
+  .fc-head span:first-child { display: none; }
+}
+</style>
+</head>
+<body>
+<div id="root">
+  <div style="max-width:60ch;margin:0 auto;padding:48px 16px">
+    <h1>JobShield AI</h1>
+    <p id="boot-note" style="margin-top:12px">Loading the dashboard…</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  if (!window.React || !window.ReactDOM) {
+    var bootNote = document.getElementById("boot-note");
+    if (bootNote) bootNote.textContent = "The interface library did not load. Check your internet connection and reload this page.";
+    return;
+  }
+
+  /* =====================================================================
+     API URL - THE ONE PLACE TO SET IT IN CODE.
+     Paste the public URL printed by the Colab tunnel cell between the
+     quotes, e.g. "https://some-words.trycloudflare.com". Leave it empty to
+     type the URL into the dashboard instead (Analyze > Backend connection).
+     The access token is never stored in this file; it is typed at run time.
+     ===================================================================== */
+  var DEFAULT_API_BASE_URL = "";
+
+  var REQUEST_TIMEOUT_MS = 30000;
+  var MAX_CHARS = 20000;
+
+  var h = React.createElement;
+  var useState = React.useState, useEffect = React.useEffect, useRef = React.useRef;
+
+  /* ---------- figures copied from JobPrediction.ipynb ---------- */
+  var DATA = {
+    total: 17880, columns: 18, legit: 17014, fraud: 866,
+    train: 14304, trainLegit: 13611, trainFraud: 693,
+    test: 3576, testLegit: 3403, testFraud: 173
+  };
+  var CM = { tn: 3370, fp: 33, fn: 26, tp: 147 };
+  var METRICS = { accuracy: 98.35, precision: 81.67, recall: 84.97, f1: 83.29 };
+  var EXPECTED = { model: "LinearSVC", C: 1, n_features: 5000 };
+  var COMPARISON = [
+    { name: "Logistic Regression", v: [96.67, 60.80, 87.86, 71.87] },
+    { name: "Multinomial Naive Bayes", v: [97.01, 100.00, 38.15, 55.23] },
+    { name: "Linear SVM", v: [98.35, 81.67, 84.97, 83.29], picked: true }
+  ];
+  var TUNING = [
+    { c: "0.01", v: [93.81, 43.01, 84.17, 56.93] },
+    { c: "0.1", v: [96.33, 58.59, 83.45, 68.84] },
+    { c: "1", v: [97.90, 79.26, 76.98, 78.10], picked: true },
+    { c: "10", v: [97.83, 81.82, 71.22, 76.15] },
+    { c: "100", v: [97.87, 83.05, 70.50, 76.26] }
+  ];
+  var FIELDS = [
+    { id: "title", label: "Job title", required: true, rows: 0, hint: "Present in every training posting." },
+    { id: "company_profile", label: "Company profile", required: false, rows: 3, hint: "Blank in 18.5% of training postings." },
+    { id: "description", label: "Job description", required: true, rows: 6, hint: "Present in every training posting." },
+    { id: "requirements", label: "Requirements", required: false, rows: 3, hint: "Blank in 15.0% of training postings." },
+    { id: "benefits", label: "Benefits", required: false, rows: 3, hint: "Blank in 40.3% of training postings." }
+  ];
+  var EXAMPLES = {
+    suspicious: {
+      title: "Work from home data entry job",
+      company_profile: "",
+      description: "Earn up to $4000 every month with flexible working hours. No interview or previous experience required. You need to purchase our starter kit for $199 before beginning work. Contact us through WhatsApp and send your ID proof to get started.",
+      requirements: "", benefits: ""
+    },
+    ordinary: {
+      title: "Marketing Manager",
+      company_profile: "",
+      description: "Marketing Manager needed for a growing company. The candidate should have experience in digital marketing, social media management, campaign planning and brand strategy. The company offers a competitive salary and professional growth opportunities. Interested candidates can apply through the official company website.",
+      requirements: "", benefits: ""
+    }
+  };
+  var VIEWS = [["overview", "Overview"], ["analyze", "Analyze"], ["performance", "Performance"], ["about", "About"]];
+
+  /* ---------- small helpers ---------- */
+  function n(x) { return x.toLocaleString("en-US"); }
+  function pct(x) { return x.toFixed(2) + "%"; }
+  function signed(x) { return (x < 0 ? "−" : "+") + Math.abs(x).toFixed(4); }
+  function share(part, whole) { return (100 * part / whole).toFixed(2) + "%"; }
+  function store(kind, key, value) {
+    try {
+      var s = kind === "session" ? window.sessionStorage : window.localStorage;
+      if (value === undefined) return s.getItem(key) || "";
+      s.setItem(key, value);
+    } catch (e) { /* storage unavailable: carry on without it */ }
+    return "";
+  }
+  function cleanUrl(u) { return (u || "").trim().replace(/\/+$/, ""); }
+  function urlProblem(u) {
+    if (!u) return "Add the API URL printed by the Colab tunnel cell.";
+    var parsed;
+    try { parsed = new URL(u); } catch (e) { return "That is not a full URL. It should look like https://some-words.trycloudflare.com"; }
+    var local = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+    if (parsed.protocol !== "https:" && !local) return "Use the https:// address. Browsers block plain http from a secure page.";
+    return "";
+  }
+
+  /* ---------- the only code that talks to the backend ---------- */
+  var hostBlockedAt = 0;
+  document.addEventListener("securitypolicyviolation", function (e) {
+    if (String(e.effectiveDirective || e.violatedDirective || "").indexOf("connect-src") === 0) hostBlockedAt = Date.now();
+  });
+
+  function describeHttpError(status, payload) {
+    var detail = payload && payload.detail;
+    if (Array.isArray(detail)) {
+      detail = detail.map(function (d) { return (d.loc ? d.loc[d.loc.length - 1] + ": " : "") + (d.msg || ""); }).join("; ");
+    }
+    if (status === 401 || status === 403) return { title: "Access token rejected", text: "Copy the token printed by the Colab API cell into the Access token box. It changes when the Colab session restarts." };
+    if (status === 404) return { title: "Wrong address", text: "The server answered, but it has no JobShield endpoint at this URL. Paste only the base address, with nothing after .com." };
+    if (status === 422) return { title: "The backend could not use this posting", text: String(detail || "The request was not in the expected format.") };
+    if (status === 429) return { title: "Too many requests", text: "The backend limits requests per minute. Wait a minute and try again." };
+    if (status === 502 || status === 503 || status === 504 || (status >= 520 && status <= 530)) return { title: "Tunnel is up, API is not answering", text: "The public URL exists but the API behind it is not responding. Re-run the API cell in Colab, then the tunnel cell, and paste the new URL." };
+    return { title: "Backend error " + status, text: String(detail || "The backend failed while handling the request. Check the Colab cell output for the error.") };
+  }
+
+  function callApi(base, token, path, body) {
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, REQUEST_TIMEOUT_MS);
+    var headers = { "X-API-Key": token };
+    if (body) headers["Content-Type"] = "application/json";
+    var started = Date.now();
+    return fetch(base + path, { method: body ? "POST" : "GET", headers: headers, body: body ? JSON.stringify(body) : undefined, signal: controller.signal })
+      .then(function (res) {
+        clearTimeout(timer);
+        return res.json().catch(function () { return null; }).then(function (payload) {
+          if (!res.ok) { var err = describeHttpError(res.status, payload); err.kind = "http"; throw err; }
+          if (!payload) throw { kind: "format", title: "Unexpected reply", text: "The server answered, but not with JSON. Check that the URL points at the JobShield API." };
+          return payload;
+        });
+      }, function (e) {
+        clearTimeout(timer);
+        return new Promise(function (resolve) { setTimeout(resolve, 80); }).then(function () {
+          if (hostBlockedAt >= started) throw { kind: "blocked", title: "This page's host blocks outside requests", text: "The published copy of this dashboard is not allowed to contact other servers, so it cannot reach Colab. Open the jobshield-dashboard.html file on your computer instead. It is the same dashboard without that restriction." };
+          if (e && e.name === "AbortError") throw { kind: "timeout", title: "No reply in 30 seconds", text: "The request was sent but nothing came back. Check that the Colab session is still running." };
+          throw { kind: "network", title: "Backend unreachable", text: "No response from " + base + ". The Colab session may have ended, the tunnel URL may have changed, or the URL is mistyped. Re-run the tunnel cell in Colab and paste the new URL. If you are viewing the published copy of this dashboard, open the jobshield-dashboard.html file instead; the published copy cannot contact outside servers." };
+        });
+      });
+  }
+
+  function looksLikePrediction(p) {
+    return p && (p.label === "Fraudulent" || p.label === "Legitimate") && typeof p.decision_score === "number" &&
+      Array.isArray(p.toward_fraudulent) && Array.isArray(p.toward_legitimate);
+  }
+
+  /* ---------- icons ---------- */
+  function Icon(props) {
+    var paths = {
+      shield: "M12 2.5 4.5 5.5v6c0 4.6 3.1 8.3 7.5 10 4.4-1.7 7.5-5.4 7.5-10v-6L12 2.5Z",
+      ok: "M12 2.5 4.5 5.5v6c0 4.6 3.1 8.3 7.5 10 4.4-1.7 7.5-5.4 7.5-10v-6L12 2.5Zm-1.2 12.9-3-3 1.4-1.4 1.6 1.6 3.8-3.8 1.4 1.4-5.2 5.2Z",
+      alert: "M12 2.6 1.8 20.5h20.4L12 2.6Zm-1 6.4h2v6h-2V9Zm0 7.5h2v2h-2v-2Z"
+    };
+    return h("svg", { width: props.size || 24, height: props.size || 24, viewBox: "0 0 24 24", "aria-hidden": "true" },
+      h("path", { d: paths[props.name], fill: props.outline ? "none" : "currentColor", stroke: props.outline ? "currentColor" : "none", strokeWidth: 1.8, strokeLinejoin: "round", fillRule: "evenodd" }));
+  }
+
+  /* ---------- shared pieces ---------- */
+  function Tile(p) {
+    return h("div", { className: "tile" },
+      h("div", { className: "tile-label" }, p.label),
+      h("div", { className: "tile-value" }, p.value),
+      p.sub ? h("div", { className: "tile-sub" }, p.sub) : null);
+  }
+  function PropBar(p) {
+    return h("div", { className: "section", style: { gap: "8px" } },
+      h("div", { className: "propbar", role: "img", "aria-label": p.aria },
+        p.parts.map(function (part) { return h("span", { key: part.label, className: part.cls, style: { width: part.share + "%" }, title: part.label + ": " + part.text }); })),
+      h("ul", { className: "legend" },
+        p.parts.map(function (part) { return h("li", { key: part.label }, h("i", { className: part.cls }), h("span", null, part.label + " ", h("b", { className: "num" }, part.text))); })));
+  }
+  function ScoreTable(p) {
+    return h("div", { className: "table-wrap" },
+      h("table", null,
+        h("thead", null, h("tr", null, [p.first, "Accuracy", "Precision", "Recall", "F1-score"].map(function (c) { return h("th", { key: c, scope: "col" }, c); }))),
+        h("tbody", null, p.rows.map(function (r) {
+          return h("tr", { key: r.name, className: r.picked ? "picked" : null },
+            h("th", { scope: "row" }, r.name, r.picked ? h("span", { className: "tag" }, p.pickedLabel) : null),
+            r.v.map(function (x, i) { return h("td", { key: i }, pct(x)); }));
+        }))));
+  }
+
+  /* ---------- Overview ---------- */
+  function Overview(p) {
+    return h(React.Fragment, null,
+      h("section", { className: "section" },
+        h("div", { className: "eyebrow" }, "Explainable fraud risk detection"),
+        h("h1", null, "Fraud risk screening for online job postings"),
+        h("p", { className: "lede" }, "A Linear SVM reads the text of a job posting and labels it legitimate or fraudulent, then shows which words moved the decision. This page reports the data it learned from and how it scored on postings it had never seen."),
+        h("div", { className: "btn-row" }, h("button", { className: "btn", onClick: function () { p.go("analyze"); } }, "Analyze a posting"))),
+
+      h("section", { className: "section" },
+        h("h2", null, "Dataset"),
+        h("div", { className: "tiles" },
+          h(Tile, { label: "Job postings", value: n(DATA.total), sub: DATA.columns + " columns, 5 used as text" }),
+          h(Tile, { label: "Fraudulent", value: n(DATA.fraud), sub: share(DATA.fraud, DATA.total) + " of all postings" }),
+          h(Tile, { label: "Training set", value: n(DATA.train), sub: n(DATA.trainFraud) + " fraudulent" }),
+          h(Tile, { label: "Test set", value: n(DATA.test), sub: n(DATA.testFraud) + " fraudulent" })),
+        h("div", { className: "card card-stack" },
+          h("h3", null, "Class balance"),
+          h(PropBar, {
+            aria: "Class balance: " + share(DATA.legit, DATA.total) + " legitimate, " + share(DATA.fraud, DATA.total) + " fraudulent",
+            parts: [
+              { label: "Legitimate", cls: "sw-legit", share: 100 * DATA.legit / DATA.total, text: n(DATA.legit) + " · " + share(DATA.legit, DATA.total) },
+              { label: "Fraudulent", cls: "sw-fraud", share: 100 * DATA.fraud / DATA.total, text: n(DATA.fraud) + " · " + share(DATA.fraud, DATA.total) }
+            ]
+          }),
+          h("p", { className: "note" }, "About one posting in twenty is fraudulent. The 80/20 train/test split is stratified, so both parts keep this ratio, and the SVM is trained with balanced class weights to stop it ignoring the rare class."))),
+
+      h("section", { className: "section" },
+        h("h2", null, "Final model on the test set"),
+        h("div", { className: "tiles" },
+          h(Tile, { label: "Accuracy", value: pct(METRICS.accuracy), sub: n(CM.tn + CM.tp) + " of " + n(DATA.test) + " correct" }),
+          h(Tile, { label: "Precision", value: pct(METRICS.precision), sub: CM.tp + " of " + (CM.tp + CM.fp) + " flagged were fraud" }),
+          h(Tile, { label: "Recall", value: pct(METRICS.recall), sub: CM.tp + " of " + (CM.tp + CM.fn) + " frauds caught" }),
+          h(Tile, { label: "F1-score", value: pct(METRICS.f1), sub: "Balance of precision and recall" })),
+        h("p", { className: "note" }, "Linear SVM, C = 1.0, scored on " + n(DATA.test) + " postings held out from training."),
+        h("div", { className: "btn-row" }, h("button", { className: "btn btn-quiet", onClick: function () { p.go("performance"); } }, "See the confusion matrix"))),
+
+      h("section", { className: "section" },
+        h("h2", null, "How a posting is scored"),
+        h("ol", { className: "pipeline" },
+          h("li", null, h("b", null, "Five text fields"), h("span", null, "Title, company profile, description, requirements, benefits.")),
+          h("li", null, h("b", null, "Clean"), h("span", null, "Strip HTML and links, lowercase, join into one text.")),
+          h("li", null, h("b", null, "Reduce"), h("span", null, "Drop stopwords and non-words, lemmatize what is left.")),
+          h("li", null, h("b", null, "TF-IDF"), h("span", null, "Weigh 5,000 learned words and two-word phrases.")),
+          h("li", null, h("b", null, "Linear SVM"), h("span", null, "Score above 0 means fraudulent, below means legitimate.")))));
+  }
+
+  /* ---------- Analyze ---------- */
+  var FIELD_LABELS = { title: "Job title", company_profile: "Company profile", description: "Job description", requirements: "Requirements", benefits: "Benefits" };
+  var NEEDS_UPDATE = "This chart needs the updated Colab cell. Paste the new jobshield_one_cell.txt into a cell in Colab and run it; the URL and token stay the same.";
+  function isZero(x) { return Math.abs(x || 0) < 0.00005; }
+
+  /* True one frame after mount, so bars and markers ease from rest to their value. */
+  function useGrown() {
+    var s = useState(false);
+    useEffect(function () {
+      var id = window.requestAnimationFrame(function () { s[1](true); });
+      return function () { window.cancelAnimationFrame(id); };
+    }, []);
+    return s[0];
+  }
+
+  /* One hover tooltip per chart: bind(text) goes on each mark, el is rendered once. */
+  function useTip() {
+    var s = useState(null), tip = s[0], setTip = s[1];
+    function bind(text) {
+      return {
+        onMouseEnter: function (e) {
+          var r = e.currentTarget.getBoundingClientRect();
+          setTip({ text: text, x: Math.min(Math.max(r.left + r.width / 2, 120), window.innerWidth - 120), y: r.top });
+        },
+        onMouseLeave: function () { setTip(null); }
+      };
+    }
+    var el = tip ? h("div", { className: "tip", role: "tooltip", style: { left: tip.x + "px", top: tip.y + "px" } }, tip.text) : null;
+    return [bind, el];
+  }
+
+  function ScoreAxis(p) {
+    var score = p.score, grown = useGrown();
+    var range = Math.max(2, Math.ceil(Math.abs(score)));
+    function at(x) { return 50 + 50 * x / range; }
+    var ticks = [];
+    for (var t = -range; t <= range; t++) ticks.push(t);
+    var labelled = range <= 6 ? [-1, 0, 1] : [0];
+    var pos = grown ? at(score) : 50;
+    return h("div", null,
+      h("div", { className: "axis", role: "img", "aria-label": "Decision score " + signed(score) + " on a scale where 0 is the decision boundary" },
+        h("div", { className: "axis-bubble", style: { left: "clamp(34px, " + pos + "%, calc(100% - 34px))" } }, signed(score)),
+        h("div", { className: "axis-track" }, h("span", null), h("span", null)),
+        ticks.map(function (t) { return h("div", { key: t, className: "axis-tick", "data-zero": t === 0 ? "true" : "false", style: { left: at(t) + "%" } }); }),
+        labelled.map(function (t) { return h("div", { key: "l" + t, className: "axis-ticklabel", style: { left: at(t) + "%" } }, t === 0 ? "0" : (t < 0 ? "−1" : "+1")); }),
+        h("div", { className: "axis-pin", "data-label": p.label, style: { left: pos + "%" } }),
+        h("div", { className: "axis-sides" }, h("span", null, "← legitimate side"), h("span", null, "fraudulent side →"))),
+      h("p", { className: "note" }, "0 is the decision boundary", range <= 6 ? " and ±1 are the SVM margins" : "", ". The score is a distance from the boundary in the model's own units. It is not a probability or a confidence percentage."));
+  }
+
+  function Reason(p) {
+    var d = p.data;
+    var side = d.label === "Fraudulent" ? d.toward_fraudulent : d.toward_legitimate;
+    var names = side.slice(0, 3).map(function (t) { return t.term; });
+    if (!names.length) return h("p", { className: "reason" }, "No term in this posting pushed toward this verdict. It comes from the model's starting offset.");
+    var parts = [];
+    names.forEach(function (name, i) { if (i) parts.push(", "); parts.push(h("b", { key: name }, name)); });
+    return h("p", { className: "reason" }, d.label === "Fraudulent" ? "Flagged mainly for: " : "Leaned legitimate mainly on: ", parts, ".");
+  }
+
+  function ResultPanel(p) {
+    var r = p.request;
+    if (r.status === "loading") return h("div", { className: "loading", role: "status" }, h("span", { className: "spinner" }), "Sending the posting to the model…");
+    if (r.status === "error") return h("div", { className: "msg", "data-tone": "error", role: "alert" }, h("b", null, r.error.title), h("div", null, r.error.text), h("div", { style: { marginTop: "6px" } }, "No prediction was made, so none is shown."));
+    if (r.status !== "success") return h("div", { className: "empty" }, h("b", null, "No analysis yet"), h("span", null, "The verdict appears here only after your Colab backend returns one. Nothing in this panel is generated by the browser."));
+    var d = r.data;
+    return h("div", { className: "card-stack reveal", key: r.id },
+      p.stale ? h("div", { className: "msg", "data-tone": "warn" }, "The form has changed since this result. Run the analysis again to update it.") : null,
+      h("div", { className: "verdict", "data-label": d.label },
+        h(Icon, { name: d.label === "Fraudulent" ? "alert" : "ok", size: 40 }),
+        h("div", null,
+          h("div", { className: "verdict-label" }, d.label),
+          h("div", { className: "verdict-meta" }, "Returned by the model at " + r.at))),
+      h(Reason, { data: d }),
+      h(ScoreAxis, { score: d.decision_score, label: d.label }),
+      h("table", { className: "sum" },
+        h("tbody", null,
+          h("tr", null, h("th", { scope: "row" }, (d.fraud_term_count || 0) + " terms pushing toward fraudulent"), h("td", null, signed(d.fraud_contribution_total || 0))),
+          h("tr", null, h("th", { scope: "row" }, (d.legit_term_count || 0) + " terms pushing toward legitimate"), h("td", null, signed(d.legit_contribution_total || 0))),
+          h("tr", null, h("th", { scope: "row" }, "Model's starting offset (intercept)"), h("td", null, signed(d.intercept || 0))),
+          h("tr", null, h("th", { scope: "row" }, "Decision score"), h("td", null, signed(d.decision_score))))));
+  }
+
+  /* Chart 1: the decision score split by where the words came from. */
+  function FieldChart(p) {
+    var d = p.data, grown = useGrown(), tipState = useTip(), bind = tipState[0];
+    if (!d.field_contributions) return h("div", { className: "msg" }, NEEDS_UPDATE);
+    var rows = d.field_contributions.map(function (f) {
+      return {
+        key: f.field, label: FIELD_LABELS[f.field] || f.field, value: f.contribution, empty: !f.words,
+        sub: f.words ? f.words + " words \u00b7 " + f.matched_terms + " terms" : "left empty",
+        tip: (FIELD_LABELS[f.field] || f.field) + ": toward fraudulent " + signed(f.toward_fraudulent) + ", toward legitimate " + signed(f.toward_legitimate) + ", net " + signed(f.contribution)
+      };
+    });
+    if (!isZero(d.cross_field_contribution)) rows.push({ key: "cross", label: "Across two fields", value: d.cross_field_contribution, sub: "phrases spanning a boundary", tip: "Two-word terms formed where one field ends and the next begins: " + signed(d.cross_field_contribution) });
+    rows.push({ key: "intercept", label: "Starting offset", value: d.intercept, sub: "same for every posting", tip: "The model's intercept, added to every posting: " + signed(d.intercept) });
+    rows.push({ key: "total", label: "Decision score", value: d.decision_score, total: true, tip: "All rows above added together: " + signed(d.decision_score) });
+    var max = rows.reduce(function (m, r) { return Math.max(m, Math.abs(r.value)); }, 0.0001);
+    return h("div", { className: "card-stack" },
+      h("div", { className: "fc", role: "img", "aria-label": "Decision score split by field. " + rows.map(function (r) { return r.label + " " + signed(r.value); }).join(", ") },
+        h("div", { className: "fc-head" }, h("span", null), h("span", { className: "fc-sides" }, h("span", null, "← legitimate"), h("span", null, "fraudulent →")), h("span", null)),
+        rows.map(function (r) {
+          var width = (grown ? 50 * Math.abs(r.value) / max : 0) + "%";
+          var bar = isZero(r.value) ? null : h("i", { className: r.total ? "fc-total" : (r.value > 0 ? "sw-fraud" : "sw-legit"), "data-dir": r.value > 0 ? "right" : "left", style: { width: width } });
+          return h("div", Object.assign({ key: r.key, className: "fc-row", "data-total": r.total ? "true" : "false" }, bind(r.tip)),
+            h("div", { className: "fc-label" }, h("span", null, r.label), r.sub ? h("small", null, r.sub) : null),
+            h("div", { className: "fc-track" }, bar),
+            h("div", { className: "fc-val" }, r.empty ? "–" : signed(r.value)));
+        })),
+      h("p", { className: "note" }, "Each bar is the sum of that field's term contributions. The rows add up to the decision score exactly."),
+      tipState[1]);
+  }
+
+  /* Chart 2: where this score sits among the scores of the notebook's test postings. */
+  function ReferenceChart(p) {
+    var d = p.data, ref = d.reference, grown = useGrown(), tipState = useTip(), bind = tipState[0];
+    if (!ref) return h("div", { className: "msg" }, d.field_contributions ? "The Colab session does not have the test set in memory (X_test_tfidf and y_test), so this comparison is not available." : NEEDS_UPDATE);
+    var edges = ref.edges, lo = edges[0], hi = edges[edges.length - 1], score = d.decision_score;
+    function at(x) { return 100 * (Math.min(Math.max(x, lo), hi) - lo) / (hi - lo); }
+    var groups = [
+      { key: "legit", cls: "sw-legit", name: "Legitimate test postings", counts: ref.legit, total: ref.n_legit },
+      { key: "fraud", cls: "sw-fraud", name: "Fraudulent test postings", counts: ref.fraud, total: ref.n_fraud }
+    ];
+    var top = 1;
+    groups.forEach(function (g) {
+      g.pct = g.counts.map(function (c) { return g.total ? 100 * c / g.total : 0; });
+      g.pct.forEach(function (x) { top = Math.max(top, x); });
+    });
+    var ticks = [], step = (hi - lo) > 9 ? 2 : 1;
+    for (var t = Math.ceil(lo); t <= Math.floor(hi); t++) if (t % step === 0) ticks.push(t);
+    function fmt(x) { return (x < 0 ? "−" : "") + Math.abs(x).toFixed(2); }
+    var outside = score < lo || score > hi;
+    return h("div", { className: "card-stack" },
+      h("div", { className: "ref", role: "img", "aria-label": "Histograms of decision scores for " + n(ref.n_legit) + " legitimate and " + n(ref.n_fraud) + " fraudulent test postings, with this posting marked at " + signed(score) },
+        groups.map(function (g, gi) {
+          return h("div", { key: g.key, className: "ref-group" },
+            h("div", { className: "ref-title" }, h("i", { className: g.cls }), g.name, h("span", { className: "num" }, n(g.total))),
+            gi === 0 ? h("div", { className: "ref-flag" }, h("span", { style: { left: "clamp(64px, " + at(score) + "%, calc(100% - 64px))" } }, "This posting " + signed(score) + (outside ? " (beyond the chart)" : ""))) : null,
+            h("div", { className: "hist-wrap" },
+              h("div", { className: "hist", "data-dense": g.counts.length > 40 ? "true" : "false" },
+                g.counts.map(function (c, i) {
+                  var text = fmt(edges[i]) + " to " + fmt(edges[i + 1]) + ": " + n(c) + (c === 1 ? " posting" : " postings") + " (" + g.pct[i].toFixed(1) + "% of this group)";
+                  return h("div", Object.assign({ key: i, className: "hist-bin" }, bind(text)), h("i", { className: g.cls, "data-any": c > 0 ? "true" : "false", style: { height: (grown ? 100 * g.pct[i] / top : 0) + "%" } }));
+                })),
+              h("div", { className: "hist-zero", style: { left: at(0) + "%" } }),
+              h("div", { className: "hist-mark", style: { left: at(score) + "%" } })));
+        }),
+        h("div", { className: "ref-axis" }, ticks.map(function (t) { return h("span", { key: t, style: { left: at(t) + "%" } }, t === 0 ? "0" : (t < 0 ? "−" + Math.abs(t) : "+" + t)); })),
+        h("div", { className: "axis-sides", style: { position: "static" } }, h("span", null, "← legitimate side"), h("span", null, "fraudulent side →"))),
+      h("p", { className: "note" }, "Of the " + n(ref.n_legit) + " legitimate test postings, ", h("b", null, n(ref.legit_at_or_above)), " scored this high or higher. Of the " + n(ref.n_fraud) + " fraudulent ones, ", h("b", null, n(ref.fraud_at_or_above)), " did."),
+      h("p", { className: "note" }, "Bar height is the share of each group in that score range. Everything right of 0 was labelled fraudulent: " + n(ref.legit_above_zero) + " legitimate and " + n(ref.fraud_above_zero) + " fraudulent test postings."),
+      h("details", { className: "more" },
+        h("summary", null, "Show the numbers"),
+        h("div", { className: "table-wrap" },
+          h("table", null,
+            h("thead", null, h("tr", null, ["Score range", "Legitimate", "Fraudulent"].map(function (c) { return h("th", { key: c, scope: "col" }, c); }))),
+            h("tbody", null, ref.legit.map(function (c, i) {
+              return h("tr", { key: i }, h("th", { scope: "row", className: "num" }, fmt(edges[i]) + " to " + fmt(edges[i + 1])), h("td", null, n(c)), h("td", null, n(ref.fraud[i])));
+            }))))),
+      tipState[1]);
+  }
+
+  function TermList(p) {
+    var grown = useGrown();
+    if (!p.items.length) return h("p", { className: "note" }, p.empty);
+    return h("ul", { className: "terms" }, p.items.map(function (item) {
+      return h("li", { key: item.term, className: "term" },
+        h("span", { className: "term-name" }, item.term),
+        h("span", { className: "term-val" }, signed(item.contribution)),
+        h("div", { className: "term-bar" }, h("i", { className: p.cls, style: { width: (grown ? 100 * Math.abs(item.contribution) / p.max : 0) + "%" } })),
+        h("span", { className: "term-math" }, "weight " + item.coefficient.toFixed(4) + " × tf-idf " + item.tfidf.toFixed(4)));
+    }));
+  }
+
+  function Coverage(p) {
+    var d = p.data;
+    if (typeof d.words_in_vocabulary !== "number" || !d.words_after_cleaning) {
+      return h("p", { className: "note" }, d.words_after_cleaning + " words were left after cleaning; " + d.matched_terms + " distinct vocabulary terms matched.");
+    }
+    var known = d.words_in_vocabulary, all = d.words_after_cleaning, unknown = all - known;
+    return h("div", { className: "section", style: { gap: "8px" } },
+      h("h3", null, "Vocabulary coverage"),
+      h("div", { className: "propbar", role: "img", "aria-label": known + " of " + all + " words are in the model's vocabulary" },
+        h("span", { className: "sw-known", style: { width: (100 * known / all) + "%" }, title: "In the vocabulary: " + known }),
+        unknown ? h("span", { className: "sw-unknown", style: { width: (100 * unknown / all) + "%" }, title: "Not in the vocabulary: " + unknown }) : null),
+      h("p", { className: "note" }, h("b", null, known + " of " + all), " words left after cleaning are in the model's 5,000-term vocabulary", unknown ? ". The other " + unknown + " had no effect on the score." : ".", " With phrases included, " + d.matched_terms + " distinct terms matched."));
+  }
+
+  function TermsCard(p) {
+    var d = p.data;
+    var all = d.toward_fraudulent.concat(d.toward_legitimate);
+    var max = all.reduce(function (m, t) { return Math.max(m, Math.abs(t.contribution)); }, 0) || 1;
+    return h("div", { className: "card card-stack" },
+      h("h3", null, "Words that moved the score"),
+      h("p", { className: "note" }, "Each term's share of the score: the model's learned weight times the term's TF-IDF value in this posting. Terms appear as the model sees them, lowercased and lemmatized with stopwords removed. Two words together are a learned phrase. The lists show the strongest terms on each side, on one scale."),
+      d.matched_terms === 0
+        ? h("div", { className: "msg", "data-tone": "warn" }, "None of this posting's words are in the model's 5,000-term vocabulary. The verdict comes from the model's starting offset alone and says nothing about this text.")
+        : h("div", { className: "evidence" },
+            h("div", { className: "card-stack", style: { gap: "10px" } },
+              h("h3", null, h("i", { className: "sw-fraud" }), "Toward fraudulent"),
+              h(TermList, { items: d.toward_fraudulent, cls: "sw-fraud", max: max, empty: "No term in this posting pushed the score toward fraudulent." })),
+            h("div", { className: "card-stack", style: { gap: "10px" } },
+              h("h3", null, h("i", { className: "sw-legit" }), "Toward legitimate"),
+              h(TermList, { items: d.toward_legitimate, cls: "sw-legit", max: max, empty: "No term in this posting pushed the score toward legitimate." }))),
+      h(Coverage, { data: d }));
+  }
+
+  function Evidence(p) {
+    var d = p.data;
+    return h("section", { className: "section reveal" },
+      h("h2", null, "Why the model decided this"),
+      h("div", { className: "charts" },
+        h("div", { className: "card card-stack" }, h("h3", null, "Score by field"), h(FieldChart, { data: d })),
+        h("div", { className: "card card-stack" }, h("h3", null, "Compared with the test set"), h(ReferenceChart, { data: d }))),
+      h(TermsCard, { data: d }));
+  }
+
+  function Connection(p) {
+    var conn = p.conn;
+    var mismatch = conn.state === "ok" && conn.info && (conn.info.model !== EXPECTED.model || Number(conn.info.C) !== EXPECTED.C || conn.info.n_features !== EXPECTED.n_features);
+    var warning = mismatch ? h("div", { className: "msg", "data-tone": "warn" }, "This backend does not match the model the dashboard describes (LinearSVC, C = 1.0, 5,000 features). The figures on the Overview and Performance pages may not apply to its predictions.") : null;
+    if (conn.state === "ok" && !p.open) {
+      return h("section", { className: "section", id: "connection", style: { gap: "8px" } },
+        h("div", { className: "connbar" },
+          h("span", { className: "status-dot", "data-on": "true" }),
+          h("span", { className: "connbar-text" }, h("b", null, "Connected to the Colab backend"), conn.info ? " · " + conn.info.model + ", C = " + conn.info.C + ", " + n(conn.info.n_features) + " features · checked " + conn.at : " · last reply " + conn.at),
+          h("button", { className: "btn btn-quiet btn-small", type: "button", onClick: function () { p.setOpen(true); } }, "Change")),
+        warning);
+    }
+    return h("section", { className: "card card-stack", id: "connection" },
+      h("div", { className: "btn-row", style: { justifyContent: "space-between" } },
+        h("h2", null, "Backend connection"),
+        conn.state === "ok" ? h("button", { className: "btn btn-quiet btn-small", type: "button", onClick: function () { p.setOpen(false); } }, "Hide") : null),
+      h("div", { className: "conn" },
+        h("div", { className: "field", "data-invalid": p.urlError ? "true" : "false" },
+          h("label", { htmlFor: "api-url" }, "API URL"),
+          h("input", { id: "api-url", ref: p.urlRef, type: "url", inputMode: "url", autoComplete: "off", spellCheck: false, placeholder: "https://some-words.trycloudflare.com", value: p.apiUrl, onChange: function (e) { p.setApiUrl(e.target.value); } })),
+        h("div", { className: "field" },
+          h("label", { htmlFor: "api-token" }, "Access token"),
+          h("input", { id: "api-token", type: "password", autoComplete: "off", spellCheck: false, placeholder: "Printed by the Colab cell", value: p.token, onChange: function (e) { p.setToken(e.target.value); } })),
+        h("button", { className: "btn btn-quiet", type: "button", disabled: conn.state === "testing", onClick: function () { p.testConnection(); } }, conn.state === "testing" ? "Testing…" : "Test connection")),
+      p.urlError ? h("div", { className: "msg", "data-tone": "error", role: "alert" }, p.urlError) : null,
+      conn.state === "ok" ? h("div", { className: "msg", "data-tone": "ok", role: "status" }, h("b", null, "Backend responding. "), conn.info ? "It reports " + conn.info.model + ", C = " + conn.info.C + ", " + n(conn.info.n_features) + " TF-IDF features. Last checked " + conn.at + "." : "It returned a prediction at " + conn.at + ".") : null,
+      warning,
+      conn.state === "error" ? h("div", { className: "msg", "data-tone": "error", role: "alert" }, h("b", null, conn.error.title + ". "), conn.error.text) : null,
+      h("div", { className: "btn-row", style: { justifyContent: "space-between" } },
+        h("p", { className: "note" }, "Both values are printed by the Colab cell and are remembered in this browser. They stop working when the Colab session ends."),
+        (p.apiUrl || p.token) ? h("button", { className: "btn btn-quiet btn-small", type: "button", onClick: p.forget }, "Forget saved connection") : null));
+  }
+
+  function Analyze(p) {
+    var r = p.request;
+    var urlRef = useRef(null);
+    function submit() { p.analyze(urlRef); }
+    return h(React.Fragment, null,
+      h("section", { className: "section" },
+        h("h1", null, "Analyze a posting"),
+        h("p", { className: "lede" }, "The posting is sent to the Linear SVM running in your Colab session. The model reads only the five text fields below; location, salary, company logo and the other dataset columns were not used in training.")),
+
+      h(Connection, { conn: p.conn, open: p.connOpen, setOpen: p.setConnOpen, urlRef: urlRef, urlError: p.urlError, apiUrl: p.apiUrl, token: p.token, setApiUrl: p.setApiUrl, setToken: p.setToken, testConnection: p.testConnection, forget: p.forget }),
+
+      h("div", { className: "bench" },
+        h("form", { className: "card card-stack", noValidate: true,
+          onSubmit: function (e) { e.preventDefault(); submit(); },
+          onKeyDown: function (e) { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submit(); } } },
+          h("div", { className: "btn-row", style: { justifyContent: "space-between" } },
+            h("h2", null, "Job posting"),
+            h("div", { className: "btn-row" },
+              h("button", { className: "btn btn-quiet btn-small", type: "button", onClick: function () { p.load("suspicious"); } }, "Suspicious example"),
+              h("button", { className: "btn btn-quiet btn-small", type: "button", onClick: function () { p.load("ordinary"); } }, "Ordinary example"),
+              h("button", { className: "btn btn-quiet btn-small", type: "button", onClick: function () { p.load(null); } }, "Clear"))),
+          p.exampleLoaded ? h("div", { className: "msg" }, "Example text from the notebook's own test cells. Replace it with a real posting.") : null,
+          FIELDS.map(function (f) {
+            var value = p.form[f.id], err = p.errors[f.id];
+            var common = { id: "f-" + f.id, value: value, maxLength: MAX_CHARS, "aria-invalid": err ? "true" : "false", onChange: function (e) { p.setField(f.id, e.target.value); } };
+            return h("div", { key: f.id, className: "field", "data-invalid": err ? "true" : "false" },
+              h("label", { htmlFor: "f-" + f.id }, f.label, " ", h("em", null, f.required ? "(required)" : "(optional)")),
+              f.rows ? h("textarea", Object.assign({ rows: f.rows }, common)) : h("input", Object.assign({ type: "text" }, common)),
+              h("div", { className: "field-foot" },
+                err ? h("span", { className: "field-err", role: "alert" }, err) : h("span", null, f.hint),
+                h("span", { className: "num" }, n(value.length) + " / " + n(MAX_CHARS))));
+          }),
+          h("div", { className: "form-actions" },
+            h("button", { className: "btn", type: "submit", disabled: r.status === "loading" }, r.status === "loading" ? h(React.Fragment, null, h("span", { className: "spinner" }), "Analyzing…") : "Analyze job"),
+            h("span", { className: "hint" }, "or press Ctrl + Enter"))),
+
+        h("div", { className: "card card-stack", id: "prediction", "aria-live": "polite" },
+          h("h2", null, "Prediction"),
+          h(ResultPanel, { key: r.id || r.status, request: r, stale: p.stale }))),
+
+      r.status === "success" ? h(Evidence, { key: r.id, data: r.data }) : null);
+  }
+
+  /* ---------- Performance ---------- */
+  function Performance() {
+    var baseline = share(DATA.testLegit, DATA.test);
+    return h(React.Fragment, null,
+      h("section", { className: "section" },
+        h("h1", null, "Model performance"),
+        h("p", { className: "lede" }, "Linear SVM with C = 1.0, evaluated on the " + n(DATA.test) + " test postings (" + n(DATA.testLegit) + " legitimate, " + n(DATA.testFraud) + " fraudulent).")),
+
+      h("section", { className: "section" },
+        h("h2", null, "Confusion matrix"),
+        h("div", { className: "cm" },
+          h("div", { className: "cm-corner" }),
+          h("div", { className: "cm-head" }, "Predicted legitimate"),
+          h("div", { className: "cm-head" }, "Predicted fraudulent"),
+          h("div", { className: "cm-row" }, "Actually legitimate", h("small", null, n(DATA.testLegit) + " postings")),
+          h("div", { className: "cm-cell" }, h("span", { className: "cm-count" }, n(CM.tn)), h("span", { className: "cm-name" }, "Correctly cleared")),
+          h("div", { className: "cm-cell", "data-kind": "error" }, h("span", { className: "cm-count" }, n(CM.fp)), h("span", { className: "cm-name" }, "False alarms")),
+          h("div", { className: "cm-row" }, "Actually fraudulent", h("small", null, n(DATA.testFraud) + " postings")),
+          h("div", { className: "cm-cell", "data-kind": "error" }, h("span", { className: "cm-count" }, n(CM.fn)), h("span", { className: "cm-name" }, "Fraud missed")),
+          h("div", { className: "cm-cell" }, h("span", { className: "cm-count" }, n(CM.tp)), h("span", { className: "cm-name" }, "Fraud caught"))),
+        h("div", { className: "prose" },
+          h("p", null, h("strong", null, CM.fn + " fraudulent postings were missed"), ", " + share(CM.fn, DATA.testFraud) + " of the fraud in the test set. ", h("strong", null, CM.fp + " legitimate postings were flagged"), ", " + share(CM.fp, DATA.testLegit) + " of the legitimate ones."),
+          h("p", null, "Labelling every posting legitimate would already score " + baseline + " accuracy on this test set, because fraud is rare. Precision and recall say more about the model than accuracy does."))),
+
+      h("section", { className: "section" },
+        h("h2", null, "The four metrics, in counts"),
+        h("div", { className: "table-wrap" },
+          h("table", null,
+            h("thead", null, h("tr", null, ["Metric", "Calculation", "Result"].map(function (c) { return h("th", { key: c, scope: "col" }, c); }))),
+            h("tbody", null,
+              h("tr", null, h("th", { scope: "row" }, "Accuracy"), h("td", null, "(" + n(CM.tn) + " + " + CM.tp + ") / " + n(DATA.test)), h("td", null, pct(METRICS.accuracy))),
+              h("tr", null, h("th", { scope: "row" }, "Precision"), h("td", null, CM.tp + " / (" + CM.tp + " + " + CM.fp + ")"), h("td", null, pct(METRICS.precision))),
+              h("tr", null, h("th", { scope: "row" }, "Recall"), h("td", null, CM.tp + " / (" + CM.tp + " + " + CM.fn + ")"), h("td", null, pct(METRICS.recall))),
+              h("tr", null, h("th", { scope: "row" }, "F1-score"), h("td", null, "2 × " + CM.tp + " / (2 × " + CM.tp + " + " + CM.fp + " + " + CM.fn + ")"), h("td", null, pct(METRICS.f1))))))),
+
+      h("section", { className: "section" },
+        h("h2", null, "Models compared"),
+        h("p", { className: "note" }, "All three were trained on the same TF-IDF features and scored on the same test set."),
+        h(ScoreTable, { first: "Model", rows: COMPARISON, pickedLabel: "Selected" })),
+
+      h("section", { className: "section" },
+        h("h2", null, "Choosing C"),
+        h("p", { className: "note" }, "The training set was split again into 11,443 training and 2,861 validation postings. Scores below are on that validation set."),
+        h(ScoreTable, { first: "C", rows: TUNING.map(function (t) { return { name: t.c, v: t.v, picked: t.picked }; }), pickedLabel: "Chosen" })));
+  }
+
+  /* ---------- About ---------- */
+  function About() {
+    var limits = [
+      ["A risk signal, not a ruling", "On the test set it missed " + CM.fn + " of " + DATA.testFraud + " fraudulent postings and flagged " + CM.fp + " legitimate ones. A Legitimate label does not make a posting safe."],
+      ["Text only", "Only five text fields are read. Location, salary range, employment type, the company-logo flag and the other columns in the dataset were not used."],
+      ["No probability", "A linear SVM returns a signed distance from its decision boundary. The dashboard shows that score as it is and never converts it into a percentage."],
+      ["A fixed 5,000-term vocabulary", "Words and phrases outside the vocabulary learned in training are ignored, so new scam wording can pass unnoticed. Cleaning assumes English text."],
+      ["Few fraud examples", "Only " + n(DATA.fraud) + " of " + n(DATA.total) + " postings (" + share(DATA.fraud, DATA.total) + ") are fraudulent, so the model has seen a narrow range of scams."],
+      ["Test scores may run slightly high", "The same test set was used to compare the three model types before the final evaluation, so it was not fully unseen when the final figures were taken."],
+      ["Explanations show weight, not cause", "The term lists show which words moved this score. They are patterns from one dataset, not proof that a word marks a scam."],
+      ["A temporary backend", "Predictions come from a Colab session behind a temporary public URL. When the session ends, analysis stops until it is restarted."]
+    ];
+    return h(React.Fragment, null,
+      h("section", { className: "section" },
+        h("div", { className: "eyebrow" }, "About the project"),
+        h("h1", null, "Explainable AI-Based Fraud Risk Detection for Online Job Postings"),
+        h("div", { className: "prose" },
+          h("p", null, "JobShield AI screens the text of a job posting for signs of fraud. It was trained on " + n(DATA.total) + " labelled postings and uses a Linear SVM over TF-IDF features, chosen after comparison with Logistic Regression and Multinomial Naive Bayes."),
+          h("p", null, h("strong", null, "Why it can explain itself."), " A linear model's score is a plain sum: each word's learned weight times how strongly that word appears in the posting, plus one fixed offset. The explanation panel shows those exact terms of the sum, as returned by the backend, so nothing in it is estimated or reconstructed."))),
+
+      h("section", { className: "section" },
+        h("h2", null, "Limitations"),
+        h("ul", { className: "limits" }, limits.map(function (l) { return h("li", { key: l[0] }, h("b", null, l[0]), h("span", null, l[1])); }))),
+
+      h("section", { className: "section" },
+        h("h2", null, "Configuration"),
+        h("dl", { className: "facts" },
+          h("dt", null, "Text fields"), h("dd", null, "title, company_profile, description, requirements, benefits"),
+          h("dt", null, "Cleaning"), h("dd", null, "HTML removed, lowercased, URLs removed, whitespace collapsed"),
+          h("dt", null, "Language steps"), h("dd", null, "NLTK tokenizer, English stopwords removed, non-alphabetic tokens dropped, WordNet lemmatizer"),
+          h("dt", null, "Features"), h("dd", null, "TF-IDF, 5,000 features, one- and two-word terms, min_df 2, max_df 0.95"),
+          h("dt", null, "Model"), h("dd", null, "LinearSVC, C = 1.0, balanced class weights, random_state 42"),
+          h("dt", null, "Split"), h("dd", null, "80% train / 20% test, stratified, random_state 42"),
+          h("dt", null, "Serving"), h("dd", null, "FastAPI inside the Colab session, token-protected, behind a temporary tunnel"))));
+  }
+
+  /* ---------- App ---------- */
+  function currentView() {
+    var token = (window.location.hash || "").replace("#", "");
+    return VIEWS.some(function (v) { return v[0] === token; }) ? token : "overview";
+  }
+  function now() { return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }); }
+
+  function App() {
+    var viewState = useState(currentView()), view = viewState[0], setView = viewState[1];
+    var urlState = useState(function () { return store("local", "jobshield.apiUrl") || DEFAULT_API_BASE_URL; }), apiUrl = urlState[0], setApiUrlRaw = urlState[1];
+    var tokenState = useState(function () { return store("local", "jobshield.token"); }), token = tokenState[0], setTokenRaw = tokenState[1];
+    var connState = useState({ state: "idle" }), conn = connState[0], setConn = connState[1];
+    var urlErrState = useState(""), urlError = urlErrState[0], setUrlError = urlErrState[1];
+    var formState = useState(EXAMPLES.suspicious), form = formState[0], setForm = formState[1];
+    var exState = useState(true), exampleLoaded = exState[0], setExampleLoaded = exState[1];
+    var errState = useState({}), errors = errState[0], setErrors = errState[1];
+    var reqState = useState({ status: "idle" }), request = reqState[0], setRequest = reqState[1];
+    var staleState = useState(false), stale = staleState[0], setStale = staleState[1];
+    var openState = useState(true), connOpen = openState[0], setConnOpen = openState[1];
+    var requestCount = useRef(0);
+
+    useEffect(function () {
+      function onHash() { setView(currentView()); }
+      window.addEventListener("hashchange", onHash);
+      return function () { window.removeEventListener("hashchange", onHash); };
+    }, []);
+
+    /* Reconnect on load when a URL and token were saved earlier. */
+    useEffect(function () {
+      var base = cleanUrl(apiUrl);
+      if (base && token.trim() && !urlProblem(base)) testConnection();
+    }, []);
+
+    function go(v) {
+      setView(v);
+      try { window.history.replaceState(null, "", "#" + v); } catch (e) { /* hash is a convenience only */ }
+      window.scrollTo(0, 0);
+    }
+    function setApiUrl(v) { setApiUrlRaw(v); store("local", "jobshield.apiUrl", v); setUrlError(""); setConn({ state: "idle" }); }
+    function setToken(v) { setTokenRaw(v); store("local", "jobshield.token", v); setConn({ state: "idle" }); }
+    function forget() { setApiUrl(""); setToken(""); setConnOpen(true); }
+    function setField(id, v) {
+      var next = Object.assign({}, form); next[id] = v; setForm(next);
+      setExampleLoaded(false);
+      if (errors[id]) { var e2 = Object.assign({}, errors); delete e2[id]; setErrors(e2); }
+      if (request.status === "success") setStale(true);
+    }
+    function load(name) {
+      setForm(name ? EXAMPLES[name] : { title: "", company_profile: "", description: "", requirements: "", benefits: "" });
+      setExampleLoaded(!!name); setErrors({});
+      if (request.status === "success") setStale(true);
+    }
+    function ready() {
+      var base = cleanUrl(apiUrl), problem = urlProblem(base);
+      if (!problem && !token.trim()) problem = "Add the access token printed by the Colab API cell.";
+      setUrlError(problem);
+      return problem ? null : base;
+    }
+    function testConnection() {
+      var base = ready(); if (!base) return;
+      setConn({ state: "testing" });
+      callApi(base, token.trim(), "/health").then(function (info) {
+        if (!info || info.status !== "ok" || !info.model) throw { title: "Unexpected reply", text: "A server answered at this URL, but it is not the JobShield API." };
+        setConn({ state: "ok", info: info, at: now() });
+        setConnOpen(false);
+      }).catch(function (err) { setConn({ state: "error", error: err.title ? err : { title: "Unexpected error", text: String(err) } }); setConnOpen(true); });
+    }
+    function analyze(urlRef) {
+      var found = {};
+      FIELDS.forEach(function (f) {
+        var value = form[f.id] || "";
+        if (f.required && !value.trim()) found[f.id] = "Enter the " + f.label.toLowerCase() + ".";
+        else if (value.length > MAX_CHARS) found[f.id] = "Shorten this to " + n(MAX_CHARS) + " characters or fewer.";
+      });
+      setErrors(found);
+      if (Object.keys(found).length) { var first = document.getElementById("f-" + Object.keys(found)[0]); if (first) first.focus(); return; }
+      var base = ready();
+      if (!base) { setConnOpen(true); window.setTimeout(function () { if (urlRef && urlRef.current) urlRef.current.focus(); }, 0); return; }
+      var body = {}; FIELDS.forEach(function (f) { body[f.id] = form[f.id] || ""; });
+      setStale(false);
+      setRequest({ status: "loading" });
+      var panel = document.getElementById("prediction");
+      if (panel && panel.getBoundingClientRect().top > window.innerHeight - 120) panel.scrollIntoView({ block: "start", behavior: "smooth" });
+      callApi(base, token.trim(), "/predict", body).then(function (payload) {
+        if (!looksLikePrediction(payload)) throw { title: "Unexpected reply", text: "The backend answered, but not with a prediction in the expected format. Check that the API cell in Colab is the current version." };
+        requestCount.current += 1;
+        setRequest({ status: "success", data: payload, at: now(), id: requestCount.current });
+        setConn(function (c) { return c.state === "ok" ? c : { state: "ok", info: null, at: now() }; });
+        setConnOpen(false);
+      }).catch(function (err) {
+        var shown = err && err.title ? err : { title: "Unexpected error", text: String(err) };
+        setRequest({ status: "error", error: shown });
+        if (shown.kind === "network" || shown.kind === "timeout" || shown.kind === "blocked" || shown.title === "Access token rejected") { setConn({ state: "error", error: shown }); setConnOpen(true); }
+      });
+    }
+
+    var statusText = { idle: cleanUrl(apiUrl) ? "Backend not tested" : "No backend set", testing: "Checking backend…", ok: "Backend responding", error: conn.error && conn.error.kind === "http" ? "Backend refused the request" : "Backend not responding" }[conn.state];
+    var page =
+      view === "analyze" ? h(Analyze, { conn: conn, request: request, stale: stale, apiUrl: apiUrl, token: token, urlError: urlError, form: form, errors: errors, exampleLoaded: exampleLoaded, setApiUrl: setApiUrl, setToken: setToken, setField: setField, load: load, testConnection: testConnection, analyze: analyze, connOpen: connOpen, setConnOpen: setConnOpen, forget: forget }) :
+      view === "performance" ? h(Performance) :
+      view === "about" ? h(About) :
+      h(Overview, { go: go });
+
+    return h(React.Fragment, null,
+      h("header", { className: "top" },
+        h("div", { className: "top-in" },
+          h("div", { className: "brand" },
+            h(Icon, { name: "shield", size: 28, outline: true }),
+            h("div", null, h("div", { className: "brand-name" }, "JobShield AI"), h("div", { className: "brand-sub" }, "Job posting fraud screening"))),
+          h("button", { className: "status", "data-state": conn.state, type: "button", onClick: function () { go("analyze"); setConnOpen(true); }, title: "Open backend connection settings" },
+            h("span", { className: "status-dot" }), statusText),
+          h("nav", { className: "nav", "aria-label": "Sections" },
+            VIEWS.map(function (v) { return h("button", { key: v[0], type: "button", "aria-current": view === v[0] ? "page" : null, onClick: function () { go(v[0]); } }, v[1]); })))),
+      h("main", { className: "page" },
+        page,
+        h("p", { className: "foot" }, "Dataset and performance figures are copied from the project notebook, JobPrediction.ipynb. Predictions and explanations come only from the connected backend; this page never generates one itself.")));
+  }
+
+  var rootEl = document.getElementById("root");
+  rootEl.textContent = "";
+  ReactDOM.createRoot(rootEl).render(h(App));
+})();
+</script>
+</body>
+</html>
